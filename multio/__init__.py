@@ -4,6 +4,7 @@ Just breathe, and it will be ok, I promise!
 '''
 
 import threading
+import sys
 
 
 class _AsyncLib(threading.local):
@@ -11,6 +12,7 @@ class _AsyncLib(threading.local):
     When asynclib.something is requested, asynclib.__dict__['something']
     is checked before asynclib.__getattr__('something')
     '''
+
     def __getattr__(self, attr):
         # the __dict__ is empty when a new instance has just been created
         if not self.__dict__:
@@ -77,3 +79,13 @@ def init(lib_name):
 
     else:
         raise RuntimeError(f'{lib_name} is not a supported library.')
+
+    asynclib.lib_name = lib_name
+
+
+def run(*args, **kwargs):
+    '''
+    Runs the appropriate library run function.
+    '''
+    lib = sys.modules[asynclib.lib_name]
+    lib.run(*args, **kwargs)
