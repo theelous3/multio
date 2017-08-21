@@ -2,14 +2,91 @@
 Wrappers for certain objects that can change behaviour between libraries.
 '''
 import inspect
+import typing
 
 from . import asynclib
+
+
+class _TaskResult:
+    def __init__(self, value: typing.Any = None, exc: Exception = None):
+        self.value = value
+        self.exc = exc
+
+    def unwrap(self):
+        '''
+        Unwraps the current result.
+        '''
+        if self.exc is not None:
+            raise self.exc
+
+        return self.value
+
+
+class Task:
+    '''
+    Wrapper for a Task that uses curio or trio's Task objects.
+
+    This should never be created directly, only through the usage of a TaskGroup.
+    '''
+
+    def __init__(self, internal_task):
+        self._internal_task = internal_task
+
+        self.cancelled = False
+
+    async def cancel(self):
+        '''
+        Attempts to cancel this task.
+        '''
+        if self.cancelled:
+            return
+
+        if asynclib.lib_name == "trio":
+            # This is horrible.
+            import trio
+            with trio.open_cancel_scope() as scope:
+                scope._add_task(self._internal_task)
+                scope.cancel()
+        elif asynclib.lib_name == "curio":
+            # capture the error!
+            await self._internal_task.cancel()
+
+        self.cancelled = True
+
+    async def wait(self):
+        '''
+        Waits for this task to complete.
+        '''
+        # no need to proxy (yet)
+        # just pass straight through
+        await self._internal_task.wait()
+
+    async def join(self) -> _TaskResult:
+        '''
+        Joins this task; waits for it to finish.
+        '''
+        if asynclib.lib_name == "trio":
+            await self._internal_task.wait()
+            res = self._internal_task.result
+        elif asynclib.lib_name == "curio":
+            # eat the exception if we need to
+            from curio import TaskError
+            try:
+                c_res = await self._internal_task.join()
+            except TaskError as e:
+                actual = e.__cause__
+                res = _TaskResult(exc=actual)
+            else:
+                res = _TaskResult(value=c_res)
+
+        return res
 
 
 class TaskGroup:
     '''
     Wrapper for a TaskGroup that either uses curio's TaskGroup or trio's nursery.
     '''
+
     def __init__(self, *args, **kwargs):
         self._internal_factory = asynclib.task_manager(*args, **kwargs)
         self._internal_instance = None
@@ -22,9 +99,9 @@ class TaskGroup:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self._internal_factory.__aexit__(exc_type, exc_val, exc_tb)
+        return await self._internal_factory.__aexit__(exc_type, exc_val, exc_tb)
 
-    async def next_done(self):
+    async def next_done(self) -> Task:
         '''
         Gets the next done task.
         '''
@@ -49,7 +126,7 @@ class TaskGroup:
 
         return next_task
 
-    async def spawn(self, cofunc, *args, **kwargs):
+    async def spawn(self, cofunc, *args, **kwargs) -> Task:
         '''
         Spawns a new task.
         '''
@@ -60,4 +137,4 @@ class TaskGroup:
         else:
             t = self._internal_instance.spawn(cofunc, *args, **kwargs)
 
-        return t
+        return Task(t)
