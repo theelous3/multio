@@ -3,44 +3,13 @@ import sys
 import threading
 
 
-# So, the idea here is that multio, after import, must be told explicitly which
-# event loop to use. Upon first import we has _AsyncLib which is an empty
-# shell. Upon initialisation the instance of _AsyncLib multio uses is
-# populated either with functions and classes directly from the chosen async
-# lib, or with wrappers around those functions and classes such that they share
-# the same api to the extent that is required.
-
-# This results in a meeting point between the two libraries which can be used
-# arbitrarily. (You can even run a trio event loop, and then run the same
-# functions with curio!)
-
-# For the sake of simplicity, where possible, the methods of _AsyncLib use the
-# curio name. For example, TaskTimeout from curio rather than
-# TooSlowError from trio. This is not indicative of any preference to the
-# libraries themselves. Both are majestic and beautiful.
-
-
-class _AsyncLib(threading.local):
-    '''
-    When asynclib.something is requested, asynclib.__dict__['something']
-    is checked before asynclib.__getattr__('something')
-    '''
-
-    def __getattr__(self, attr):
-        # the __dict__ is empty when a new instance has just been created
-        if not self.__dict__:
-            raise RuntimeError("multio.init() wasn't called")
-
-        raise AttributeError("object {} has no attribute '{}'".format(type(self).__name__, attr))
-
-
-asynclib = _AsyncLib()
-
+# Wrapper classes
 
 class AsyncWithWrapper:
     '''
     A wrapper that allows using a ``with`` context manager with ``async with``.
     '''
+
     def __init__(self, manager, *args, **kwargs):
         self.manager = manager(*args, **kwargs)
 
@@ -64,6 +33,118 @@ class AsyncWithWrapper:
         return functools.partial(cls, meth)
 
 
+class SocketWrapper:
+    '''
+    A wrapper around a socket that unifies the APIs.
+    '''
+
+    def __init__(self, sock):
+        self.sock = sock
+
+    async def recv(self, nbytes: int = -1, *args, **kwargs) -> bytes:
+        '''
+        Receives some data on the socket.
+        '''
+        return await asynclib.recv(self.sock, nbytes, *args, **kwargs)
+
+    async def sendall(self, data: bytes, *args, **kwargs):
+        '''
+        Sends some data on the socket.
+        '''
+        return await asynclib.sendall(self.sock, data, *args, **kwargs)
+
+    async def close(self):
+        '''
+        Closes the socket.
+        '''
+        return await asynclib.sock_close(self.sock)
+
+    aclose = close
+
+    @classmethod
+    def wrap(cls, meth):
+        '''
+        Wraps a connection opening method in this class.
+        '''
+        async def inner(*args, **kwargs):
+            sock = await meth(*args, **kwargs)
+            return cls(sock)
+
+# So, the idea here is that multio, after import, must be told explicitly which
+# event loop to use. Upon first import we has _AsyncLib which is an empty
+# shell. Upon initialisation the instance of _AsyncLib multio uses is
+# populated either with functions and classes directly from the chosen async
+# lib, or with wrappers around those functions and classes such that they share
+# the same api to the extent that is required.
+
+# This results in a meeting point between the two libraries which can be used
+# arbitrarily. (You can even run a trio event loop, and then run the same
+# functions with curio!)
+
+# For the sake of simplicity, where possible, the methods of _AsyncLib use the
+# curio name. For example, TaskTimeout from curio rather than
+# TooSlowError from trio. This is not indicative of any preference to the
+# libraries themselves. Both are majestic and beautiful.
+
+
+class _AsyncLib(threading.local):
+    '''
+    When asynclib.something is requested, asynclib.__dict__['something']
+    is checked before asynclib.__getattr__('something')
+    '''
+    _init = False
+
+    async def aopen(self, *args, **kwargs):
+        '''
+        Opens an async file.
+        '''
+
+    async def open_connection(self, host: str, port: int, *args, **kwargs) -> SocketWrapper:
+        '''
+        Opens a connection. Returns a SocketWrapper.
+        '''
+
+    async def sleep(self, amount: float):
+        '''
+        Sleeps for a certain time.
+        '''
+
+    def task_manager(self, *args, **kwargs):
+        '''
+        Gets a task manager instance.
+        '''
+
+    def timeout_after(self, *args, **kwargs):
+        '''
+        Timeouts an operation after a certain period.
+        '''
+
+    async def sendall(self, sock, *args, **kwargs):
+        '''
+        Sends all data through a socket.
+        '''
+
+    async def recv(self, sock, *args, **kwargs) -> bytes:
+        '''
+        Receives data from a socket.
+        '''
+
+    async def sock_close(self, sock):
+        '''
+        Closes a socket.
+        '''
+
+    def __getattribute__(self, item):
+        if super().__getattribute__("_init") is False:
+            raise RuntimeError("multio.init() wasn't called")
+
+        return super().__getattribute__(item)
+
+
+# Singleton instance.
+asynclib = _AsyncLib()
+
+
 def init(lib_name):
     '''
     Must be called at some point after import and before your event loop
@@ -78,7 +159,8 @@ def init(lib_name):
     if lib_name == 'curio':
         import curio
         from ._event_loop_wrappers import (curio_sendall,
-                                           curio_recv)
+                                           curio_recv,
+                                           curio_close)
         asynclib.aopen = curio.aopen
         asynclib.open_connection = curio.open_connection
         asynclib.sleep = curio.sleep
@@ -87,12 +169,14 @@ def init(lib_name):
         asynclib.timeout_after = curio.timeout_after
         asynclib.sendall = curio_sendall
         asynclib.recv = curio_recv
+        asynclib.sock_close = curio_close
 
     elif lib_name == 'trio':
         import trio
         from ._event_loop_wrappers import (trio_open_connection,
                                            trio_send_all,
-                                           trio_receive_some)
+                                           trio_receive_some,
+                                           trio_close)
         asynclib.aopen = trio.open_file
         asynclib.sleep = trio.sleep
         asynclib.task_manager = trio.open_nursery
@@ -101,11 +185,13 @@ def init(lib_name):
         asynclib.open_connection = trio_open_connection
         asynclib.sendall = trio_send_all
         asynclib.recv = trio_receive_some
+        asynclib.sock_close = trio_close
 
     else:
         raise RuntimeError('{} is not a supported library.'.format(lib_name))
 
     asynclib.lib_name = lib_name
+    asynclib._init = True
 
 
 def unwrap_result(task):
