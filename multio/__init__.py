@@ -1,24 +1,6 @@
-'''
-Alright, you're probably having a heart attack looking at this right now.
-Just breathe, and it will be ok, I promise!
-'''
-
-import threading
+import functools
 import sys
-
-
-class _AsyncLib(threading.local):
-    '''
-    When asynclib.something is requested, asynclib.__dict__['something']
-    is checked before asynclib.__getattr__('something')
-    '''
-
-    def __getattr__(self, attr):
-        # the __dict__ is empty when a new instance has just been created
-        if not self.__dict__:
-            raise RuntimeError("multio.init() wasn't called")
-
-        raise AttributeError("object {} has no attribute '{}'".format(type(self).__name__, attr))
+import threading
 
 
 # So, the idea here is that multio, after import, must be told explicitly which
@@ -38,7 +20,48 @@ class _AsyncLib(threading.local):
 # libraries themselves. Both are majestic and beautiful.
 
 
+class _AsyncLib(threading.local):
+    '''
+    When asynclib.something is requested, asynclib.__dict__['something']
+    is checked before asynclib.__getattr__('something')
+    '''
+
+    def __getattr__(self, attr):
+        # the __dict__ is empty when a new instance has just been created
+        if not self.__dict__:
+            raise RuntimeError("multio.init() wasn't called")
+
+        raise AttributeError("object {} has no attribute '{}'".format(type(self).__name__, attr))
+
+
 asynclib = _AsyncLib()
+
+
+class AsyncWithWrapper:
+    '''
+    A wrapper that allows using a ``with`` context manager with ``async with``.
+    '''
+    def __init__(self, manager, *args, **kwargs):
+        self.manager = manager(*args, **kwargs)
+
+    def __enter__(self):
+        return self.manager.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self.manager.__exit__(exc_type, exc_val, exc_tb)
+
+    async def __aenter__(self):
+        return self.__enter__()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return self.__exit__(exc_type, exc_val, exc_tb)
+
+    @classmethod
+    def wrap(cls, meth):
+        '''
+        Wraps a function that produces an async context manager.
+        '''
+        return functools.partial(cls, meth)
 
 
 def init(lib_name):
@@ -74,7 +97,7 @@ def init(lib_name):
         asynclib.sleep = trio.sleep
         asynclib.task_manager = trio.open_nursery
         asynclib.TaskTimeout = trio.TooSlowError
-        asynclib.timeout_after = trio.fail_after
+        asynclib.timeout_after = AsyncWithWrapper.wrap(trio.fail_after)
         asynclib.open_connection = trio_open_connection
         asynclib.sendall = trio_send_all
         asynclib.recv = trio_receive_some
