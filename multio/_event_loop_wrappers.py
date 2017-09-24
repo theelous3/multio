@@ -32,10 +32,7 @@ async def trio_open_connection(host, port, *, ssl=False, **kwargs):
     return sock
 
 
-# the following four functions are simply to unify curio's socket.sendall/recv
-# and trio's SocketStream.send_all/receive_some in to .sendall/.recv, in an
-# effort to minimise api weirdness in asks.
-
+# The following function just allow the asynclib object to operate on socket objects.
 
 async def trio_send_all(sock, *args, **kwargs):
     await sock.send_all(*args, **kwargs)
@@ -45,9 +42,17 @@ async def trio_receive_some(sock, max_bytes):
     return await sock.receive_some(max_bytes)
 
 
+async def trio_close(sock):
+    return await sock.aclose()
+
+
 async def curio_sendall(sock, *args, **kwargs):
     await sock.sendall(*args, **kwargs)
 
 
 async def curio_recv(sock, max_bytes):
     return await sock.recv(max_bytes)
+
+
+async def curio_close(sock):
+    return await sock.close()
