@@ -18,6 +18,8 @@ class _AsyncLib(threading.local):
         if not self.__dict__:
             raise RuntimeError("multio.init() wasn't called")
 
+        raise AttributeError("object {} has no attribute '{}'".format(type(self).__name__, attr))
+
 
 # So, the idea here is that multio, after import, must be told explicitly which
 # event loop to use. Upon first import we has _AsyncLib which is an empty
@@ -78,9 +80,19 @@ def init(lib_name):
         asynclib.recv = trio_receive_some
 
     else:
-        raise RuntimeError(f'{lib_name} is not a supported library.')
+        raise RuntimeError('{} is not a supported library.'.format(lib_name))
 
     asynclib.lib_name = lib_name
+
+
+def unwrap_result(task):
+    '''
+    Unwraps a result from a task.
+    '''
+    if asynclib.lib_name == "curio":
+        return task.result
+    elif asynclib.lib_name == "trio":
+        return task.result.unwrap()
 
 
 def run(*args, **kwargs):
