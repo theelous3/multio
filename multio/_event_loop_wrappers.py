@@ -8,8 +8,7 @@ __all__ = ['trio_open_connection', 'trio_send_all', 'trio_receive_some',
            'curio_sendall', 'curio_recv']
 
 
-# trio wrappers
-
+# Wrapper functions.
 async def trio_open_connection(host, port, *, ssl=False, **kwargs):
     '''
     Allows connections to be made that may or may not require ssl.
@@ -30,9 +29,6 @@ async def trio_open_connection(host, port, *, ssl=False, **kwargs):
         sock = await trio.open_ssl_over_tcp_stream(host, port)
         await sock.do_handshake()
     return sock
-
-
-# The following function just allow the asynclib object to operate on socket objects.
 
 async def trio_send_all(sock, *args, **kwargs):
     await sock.send_all(*args, **kwargs)
@@ -56,3 +52,11 @@ async def curio_recv(sock, max_bytes):
 
 async def curio_close(sock):
     return await sock.close()
+
+# weird spawn semantics
+# TODO: Make this better
+async def trio_spawn(nursery, coro, *args):
+    return nursery.start_soon(coro, *args)
+
+async def curio_spawn(taskgroup, coro, *args):
+    return await taskgroup.spawn(coro, *args)

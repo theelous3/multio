@@ -1,10 +1,17 @@
 import functools
+import inspect
 import sys
 import threading
 
 
-# Wrapper classes
+async def _maybe_await(coro):
+    if inspect.isawaitable(coro):
+        return await coro
 
+    return coro
+
+
+# Wrapper classes
 class AsyncWithWrapper:
     '''
     A wrapper that allows using a ``with`` context manager with ``async with``.
@@ -70,6 +77,61 @@ class SocketWrapper:
             sock = await meth(*args, **kwargs)
             return cls(sock)
 
+
+class Lock:
+    '''
+    Represents a lock.
+    '''
+    def __init__(self):
+        self.lock = asynclib.Lock()
+
+    def __aenter__(self):
+        return self.lock.__aenter__()
+
+    def __aexit__(self, *args, **kwargs):
+        return self.lock.__aexit__(*args, **kwargs)
+
+    async def acquire(self, *args, **kwargs):
+        '''
+        Acquires the lock.
+        '''
+        return await self.lock.acquire()
+
+    async def release(self, *args, **kwargs):
+        '''
+        Releases the lock.
+        '''
+        return await _maybe_await(self.lock.release(*args, **kwargs))
+
+
+class Event:
+    '''
+    Represents an event.
+    '''
+    def __init__(self):
+        self.event = asynclib.Event()
+
+    def is_set(self) -> bool:
+        return self.event.is_set()
+
+    async def set(self, *args, **kwargs):
+        '''
+        Sets the value of the event.
+        '''
+        return await _maybe_await(self.event.set(*args, **kwargs))
+
+    async def wait(self):
+        '''
+        Waits for the event.
+        '''
+        return await self.event.wait()
+
+    def clear(self):
+        '''
+        Clears this event.
+        '''
+        return self.event.clear()
+
 # So, the idea here is that multio, after import, must be told explicitly which
 # event loop to use. Upon first import we has _AsyncLib which is an empty
 # shell. Upon initialisation the instance of _AsyncLib multio uses is
@@ -112,6 +174,11 @@ class _AsyncLib(threading.local):
     def task_manager(self, *args, **kwargs):
         '''
         Gets a task manager instance.
+        '''
+
+    async def spawn(self, taskgroup_or_nursery, coro, *args):
+        '''
+        Spawns a task in a taskgroup or nursery.
         '''
 
     def timeout_after(self, *args, **kwargs):
@@ -160,32 +227,46 @@ def init(lib_name):
         import curio
         from ._event_loop_wrappers import (curio_sendall,
                                            curio_recv,
-                                           curio_close)
+                                           curio_close,
+                                           curio_spawn)
         asynclib.aopen = curio.aopen
         asynclib.open_connection = curio.open_connection
         asynclib.sleep = curio.sleep
         asynclib.task_manager = curio.TaskGroup
-        asynclib.TaskTimeout = curio.TaskTimeout
         asynclib.timeout_after = curio.timeout_after
         asynclib.sendall = curio_sendall
         asynclib.recv = curio_recv
         asynclib.sock_close = curio_close
+        asynclib.spawn = curio_spawn
+
+        asynclib.Lock = curio.Lock
+        asynclib.Queue = curio.Queue
+        asynclib.Event = curio.Event
+        asynclib.Cancelled = curio.CancelledError
+        asynclib.TaskTimeout = curio.TaskTimeout
 
     elif lib_name == 'trio':
         import trio
         from ._event_loop_wrappers import (trio_open_connection,
                                            trio_send_all,
                                            trio_receive_some,
-                                           trio_close)
+                                           trio_close,
+                                           trio_spawn)
         asynclib.aopen = trio.open_file
         asynclib.sleep = trio.sleep
         asynclib.task_manager = trio.open_nursery
-        asynclib.TaskTimeout = trio.TooSlowError
         asynclib.timeout_after = AsyncWithWrapper.wrap(trio.fail_after)
         asynclib.open_connection = trio_open_connection
         asynclib.sendall = trio_send_all
         asynclib.recv = trio_receive_some
         asynclib.sock_close = trio_close
+        asynclib.spawn = trio_spawn
+
+        asynclib.Lock = trio.Lock
+        asynclib.Queue = trio.Queue
+        asynclib.Cancelled = trio.Cancelled
+        asynclib.Event = trio.Event
+        asynclib.TaskTimeout = trio.TooSlowError
 
     else:
         raise RuntimeError('{} is not a supported library.'.format(lib_name))
