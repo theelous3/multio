@@ -17,5 +17,5 @@ script:
    - pip3 install git+https://github.com/dabeaz/curio.git
    - pip3 install pylint
    - pytest --verbose --tb=native
-   - pylint asks tests
+   - pylint multio tests
 
