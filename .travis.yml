@@ -16,6 +16,5 @@ install:
    - pip3 install git+https://github.com/python-trio/trio.git
    - pip3 install git+https://github.com/dabeaz/curio.git
    - pip3 install pylint
-   - pip3 install multio
 
 
