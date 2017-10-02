@@ -10,7 +10,7 @@ python:
 
 cache: pip
 
-install:
+script:
    - python setup.py develop
    - pip3 install pytest-httpbin
    - pip3 install git+https://github.com/python-trio/trio.git
