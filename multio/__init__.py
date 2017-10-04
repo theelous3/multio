@@ -76,6 +76,7 @@ class SocketWrapper:
         async def inner(*args, **kwargs):
             sock = await meth(*args, **kwargs)
             return cls(sock)
+        return inner
 
 
 class Lock:
