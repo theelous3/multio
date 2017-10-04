@@ -54,7 +54,6 @@ async def curio_close(sock):
     return await sock.close()
 
 # weird spawn semantics
-# TODO: Make this better
 async def trio_spawn(nursery, coro, *args):
     return nursery.start_soon(coro, *args)
 

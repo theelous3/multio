@@ -15,6 +15,5 @@ setup(
     author='Mark Jameson - aka theelous3, and Akuli',
     url='https://github.com/theelous3/multio',
     packages=['multio'],
-    tests_require=['pytest'],
     classifiers=['Programming Language :: Python :: 3']
 )
