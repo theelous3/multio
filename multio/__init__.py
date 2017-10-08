@@ -292,3 +292,23 @@ def run(*args, **kwargs):
     '''
     lib = sys.modules[asynclib.lib_name]
     lib.run(*args, **kwargs)
+
+
+class _ModWrapper:
+    '''
+    A wrapper that allows ``multio.<name>`` to proxy through to ``asynclib.<name>``.
+    '''
+    def __init__(self, mod):
+        self.mod = mod
+
+    def __repr__(self):
+        return "<Wrapper for {}>".format(repr(self.mod))
+
+    def __getattr__(self, item):
+        try:
+            return getattr(asynclib, item)
+        except AttributeError:
+            return getattr(self.mod, item)
+
+
+sys.modules[__name__] = _ModWrapper(sys.modules[__name__])
