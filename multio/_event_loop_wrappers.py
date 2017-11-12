@@ -30,6 +30,7 @@ async def trio_open_connection(host, port, *, ssl=False, **kwargs):
         await sock.do_handshake()
     return sock
 
+
 async def trio_send_all(sock, *args, **kwargs):
     await sock.send_all(*args, **kwargs)
 
@@ -53,9 +54,11 @@ async def curio_recv(sock, max_bytes):
 async def curio_close(sock):
     return await sock.close()
 
+
 # weird spawn semantics
 async def trio_spawn(nursery, coro, *args):
     return nursery.start_soon(coro, *args)
+
 
 async def curio_spawn(taskgroup, coro, *args):
     return await taskgroup.spawn(coro, *args)
