@@ -158,7 +158,7 @@ class Event:
 
 class _AsyncLibManager:
     '''
-    A manager for multio. This allows registering a library and a function that sets the 
+    A manager for multio. This allows registering a library and a function that sets the
     attributes of the object for the appropriate library.
     '''
 
@@ -183,6 +183,7 @@ class _AsyncLib(threading.local):
     _init = False
 
     Lock = _not_impl_generic
+    Semaphore = _not_impl_generic
     Queue = _not_impl_generic
     Cancelled = _not_impl_generic
     Event = _not_impl_generic
@@ -271,6 +272,7 @@ def _curio_init(lib: _AsyncLib):
     lib.spawn = curio_spawn
 
     lib.Lock = curio.Lock
+    lib.Semaphore = curio.BoundedSemaphore
     lib.Queue = curio.Queue
     lib.Event = curio.Event
     lib.Cancelled = curio.CancelledError
@@ -295,6 +297,7 @@ def _trio_init(lib: _AsyncLib):
     lib.spawn = trio_spawn
 
     lib.Lock = trio.Lock
+    lib.Semaphore = curio.CapacityLimiter
     lib.Queue = trio.Queue
     lib.Cancelled = trio.Cancelled
     lib.Event = trio.Event
