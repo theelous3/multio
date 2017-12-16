@@ -297,7 +297,7 @@ def _trio_init(lib: _AsyncLib):
     lib.spawn = trio_spawn
 
     lib.Lock = trio.Lock
-    lib.Semaphore = curio.CapacityLimiter
+    lib.Semaphore = trio.CapacityLimiter
     lib.Queue = trio.Queue
     lib.Cancelled = trio.Cancelled
     lib.Event = trio.Event
