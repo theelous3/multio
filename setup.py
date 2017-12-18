@@ -11,7 +11,7 @@ setup(
     name='multio',
     description='mulio - an unified async library for curio and trio',
     license='MIT',
-    version='0.0.2',
+    version='0.1.2',
     author='theelous3, SunDwarf, and Akuli',
     url='https://github.com/theelous3/multio',
     packages=['multio'],
