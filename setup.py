@@ -12,7 +12,7 @@ setup(
     description='mulio - an unified async library for curio and trio',
     license='MIT',
     version='0.0.2',
-    author='Mark Jameson - aka theelous3, and Akuli',
+    author='theelous3, SunDwarf, and Akuli',
     url='https://github.com/theelous3/multio',
     packages=['multio'],
     classifiers=['Programming Language :: Python :: 3']
