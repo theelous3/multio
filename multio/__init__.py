@@ -386,6 +386,18 @@ def run(*args, **kwargs):
     lib.run(*args, **kwargs)
 
 
+# Metamagic.
+# Python 3.7+ module-level getattr and dir; see PEP 562.
+def __getattr__(name: str):
+    return getattr(asynclib, name)
+
+
+def __dir__():
+    return asynclib.__dir__()
+
+
+# Python <=3.6 module-level getattr; this hijacks our sys.module entry to provide getattr access
+# to asynclib.
 class _ModWrapper:
     '''
     A wrapper that allows ``multio.<name>`` to proxy through to ``asynclib.<name>``.
@@ -403,5 +415,13 @@ class _ModWrapper:
         except AttributeError:
             return getattr(asynclib, item)
 
+    def __dir__(self):
+        return asynclib.__dir__()
 
-sys.modules[__name__] = _ModWrapper(sys.modules[__name__])
+
+if sys.version_info[0:2] <= (3, 6):
+    original = sys.modules[__name__]
+
+    # store a copy, in case somebody needs it.
+    sys.modules["multio.__original"] = original
+    sys.modules[__name__] = _ModWrapper(original)
