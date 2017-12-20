@@ -49,11 +49,11 @@ class SocketWrapper:
     def __init__(self, sock):
         self.sock = sock
 
-    async def recv(self, *args, nbytes: int = -1, **kwargs) -> bytes:
+    async def recv(self, nbytes: int = -1, **kwargs) -> bytes:
         '''
         Receives some data on the socket.
         '''
-        return await asynclib.recv(self.sock, nbytes, *args, **kwargs)
+        return await asynclib.recv(self.sock, nbytes, **kwargs)
 
     async def sendall(self, data: bytes, *args, **kwargs):
         '''
