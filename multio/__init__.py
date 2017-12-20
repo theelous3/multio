@@ -286,6 +286,13 @@ def _trio_init(lib: _AsyncLib):
                                        trio_receive_some,
                                        trio_close,
                                        trio_spawn)
+
+    # monkey patch trio.Semaphore.release to be awaitable
+    trio.Semaphore.release_ = trio.Semaphore.release
+    async def release_wrapper(self):
+        self.release_()
+    trio.Semaphore.release = release_wrapper
+
     lib.aopen = trio.open_file
     lib.sleep = trio.sleep
     lib.task_manager = trio.open_nursery
