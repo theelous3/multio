@@ -139,6 +139,43 @@ class Event:
         return self.event.clear()
 
 
+class Promise(object):
+    '''
+    Represents a Promise, i.e. an Event with a return value.
+    '''
+
+    def __init__(self):
+        self.event = Event()
+
+        self._data = None
+
+    async def set(self, data):
+        '''
+        Sets the promise with some data.
+        '''
+        self._data = data
+        await self.event.set()
+
+    async def wait(self):
+        '''
+        Waits for the promise to be set.
+        '''
+        await self.event.wait()
+        return self._data
+
+    def clear(self):
+        '''
+        Clears this promise.
+        '''
+        return self.event.clear()
+
+    def is_set(self) -> bool:
+        '''
+        Returns if this Promise is set.
+        '''
+        return self.event.is_set()
+
+
 # So, the idea here is that multio, after import, must be told explicitly which
 # event loop to use. Upon first import we has _AsyncLib which is an empty
 # shell. Upon initialisation the instance of _AsyncLib multio uses is
