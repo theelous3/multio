@@ -18,8 +18,8 @@ class AsyncWithWrapper:
     A wrapper that allows using a ``with`` context manager with ``async with``.
     '''
 
-    def __init__(self, manager, *args, **kwargs):
-        self.manager = manager(*args, **kwargs)
+    def __init__(self, ctxmanager, *args, **kwargs):
+        self.manager = ctxmanager(*args, **kwargs)
 
     def __enter__(self):
         return self.manager.__enter__()
@@ -49,7 +49,7 @@ class SocketWrapper:
     def __init__(self, sock):
         self.sock = sock
 
-    async def recv(self, nbytes: int = -1, *args, **kwargs) -> bytes:
+    async def recv(self, *args, nbytes: int = -1, **kwargs) -> bytes:
         '''
         Receives some data on the socket.
         '''
