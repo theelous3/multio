@@ -183,7 +183,7 @@ class _AsyncLib(threading.local):
     _init = False
 
     Lock = _not_impl_generic
-    BoundedSemaphore = _not_impl_generic
+    Semaphore = _not_impl_generic
     Queue = _not_impl_generic
     Cancelled = _not_impl_generic
     Event = _not_impl_generic
@@ -272,7 +272,7 @@ def _curio_init(lib: _AsyncLib):
     lib.spawn = curio_spawn
 
     lib.Lock = curio.Lock
-    lib.BoundedSemaphore = curio.BoundedSemaphore
+    lib.Semaphore = curio.BoundedSemaphore
     lib.Queue = curio.Queue
     lib.Event = curio.Event
     lib.Cancelled = curio.CancelledError
@@ -286,13 +286,6 @@ def _trio_init(lib: _AsyncLib):
                                        trio_receive_some,
                                        trio_close,
                                        trio_spawn)
-
-    # monkey patch trio.Semaphore.release to be awaitable
-    trio.Semaphore.release_ = trio.Semaphore.release
-    async def release_wrapper(self):
-        self.release_()
-    trio.Semaphore.release = release_wrapper
-
     lib.aopen = trio.open_file
     lib.sleep = trio.sleep
     lib.task_manager = trio.open_nursery
@@ -304,7 +297,7 @@ def _trio_init(lib: _AsyncLib):
     lib.spawn = trio_spawn
 
     lib.Lock = trio.Lock
-    lib.BoundedSemaphore = lambda max: trio.Semaphore(0, max_value=max)
+    lib.Semaphore = trio.CapacityLimiter
     lib.Queue = trio.Queue
     lib.Cancelled = trio.Cancelled
     lib.Event = trio.Event
