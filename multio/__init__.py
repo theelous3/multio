@@ -108,6 +108,12 @@ class Lock:
         '''
         return await _maybe_await(self.lock.release(*args, **kwargs))
 
+    def locked(self) -> bool:
+        '''
+        Returns if this lock is locked or not.
+        '''
+        return self.lock.locked()
+
 
 class Event:
     '''
@@ -217,7 +223,11 @@ def _not_impl_generic(*args, **kwargs):
 
 
 class _AsyncLib(threading.local):
+    #: If multio is initialized yet.
     _init = False
+
+    #: The lib name currently in usage.
+    lib_name = ""
 
     Lock = _not_impl_generic
     Semaphore = _not_impl_generic

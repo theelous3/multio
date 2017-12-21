@@ -4,8 +4,8 @@ share a close enough api for, or which may require a little wangjangling
 to get to function correctly.
 '''
 
-__all__ = ['trio_open_connection', 'trio_send_all', 'trio_receive_some',
-           'curio_sendall', 'curio_recv']
+__all__ = ['trio_open_connection', 'trio_send_all', 'trio_receive_some', 'trio_close', 'trio_spawn',
+           'curio_sendall', 'curio_recv', 'curio_close', 'curio_spawn']
 
 
 # Wrapper functions.
