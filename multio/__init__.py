@@ -182,23 +182,26 @@ class Promise(object):
         return self.event.is_set()
 
 
-# So, the idea here is that multio, after import, must be told explicitly which
-# event loop to use. Upon first import we has _AsyncLib which is an empty
-# shell. Upon initialisation the instance of _AsyncLib multio uses is
-# populated either with functions and classes directly from the chosen async
-# lib, or with wrappers around those functions and classes such that they share
-# the same api to the extent that is required.
-
-# This results in a meeting point between the two libraries which can be used
-# arbitrarily. (You can even run a trio event loop, and then run the same
-# functions with curio!)
-
-# For the sake of simplicity, where possible, the methods of _AsyncLib use the
-# curio name. For example, TaskTimeout from curio rather than
-# TooSlowError from trio. This is not indicative of any preference to the
-# libraries themselves. Both are majestic and beautiful.
+# finalize_agen support for curio; by defualt does not much
+def finalize_agen(gen):
+    '''
+    See curio.meta.finalize_agen.
+    '''
+    return asynclib.finalize_agen(gen)
 
 
+class _AgenFinalizer(object):
+    def __init__(self, agen):
+        self._ = agen
+
+    async def __aenter__(self):
+        return self._
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return False
+
+
+# multio core
 class _AsyncLibManager:
     '''
     A manager for multio. This allows registering a library and a function that sets the
@@ -235,6 +238,13 @@ class _AsyncLib(threading.local):
     Cancelled = _not_impl_generic
     Event = _not_impl_generic
     TaskTimeout = _not_impl_generic
+
+    def finalize_agen(self, agen):
+        '''
+        Finalizes an async generator. The default implementation of this function suffices if no
+        implementation is made by a lib author.
+        '''
+        return _AgenFinalizer(agen)
 
     async def aopen(self, *args, **kwargs):
         '''
@@ -317,6 +327,7 @@ def _curio_init(lib: _AsyncLib):
     lib.recv = curio_recv
     lib.sock_close = curio_close
     lib.spawn = curio_spawn
+    lib.finalize_agen = curio.meta.finalize
 
     lib.Lock = curio.Lock
     lib.Semaphore = curio.BoundedSemaphore
