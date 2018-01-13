@@ -1,6 +1,7 @@
 # multio
 
-multio is a convenience wrapper for curio and trio, that unifies their apis such that they can be used willy-nilly.
+multio is a convenience wrapper for curio and trio, that unifies their
+apis such that they can be used willy-nilly.
 
 ### example
 
