@@ -11,9 +11,22 @@ setup(
     name='multio',
     description='mulio - an unified async library for curio and trio',
     license='MIT',
-    version='0.0.2',
+    version='0.2.0',
     author='theelous3, SunDwarf, and Akuli',
     url='https://github.com/theelous3/multio',
-    packages=['multio'],
-    classifiers=['Programming Language :: Python :: 3']
+    python_requires=">=3.5.2",
+    packages=[
+        'multio'
+    ],
+    classifiers=[
+        'Programming Language :: Python :: 3'
+    ],
+    extras_require={
+        'curio': [
+            'curio>=0.7.0'
+        ],
+        'trio': [
+            'trio>=0.2.0'
+        ]
+    }
 )

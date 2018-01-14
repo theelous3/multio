@@ -18,7 +18,7 @@ async def trio_open_connection(host, port, *, ssl=False, **kwargs):
     Args:
         host (str): Network location, either by domain or IP.
         port (int): The requested port.
-        ssl (bool): Weather or not SSL is required.
+        ssl (bool): Whether or not SSL is required.
         kwargs: A catch all to soak up curio's additional kwargs and
             ignore them.
     '''
