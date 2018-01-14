@@ -1,8 +1,46 @@
 import functools
 import inspect
+import socket
 import sys
 import threading
+import typing
 from typing import Callable
+
+from . import _low_level, _event_loop_wrappers
+
+
+# used for static introspection e.g. pycharm
+# in reality, we can't import anything due to module getattr
+if typing.TYPE_CHECKING:
+    __all__ = [
+        "SocketWrapper",
+        "Lock",
+        "Event",
+        "Promise",
+        "Semaphore",
+        "Queue",
+        "Cancelled",
+        "TaskTimeout"
+        "finalize_agen",
+
+        # export the asynclib
+        "asynclib",
+        "init",
+        "register",
+        
+        # asynclib delegates
+        "aopen",
+        "open_connection",
+        "sleep",
+        "task_manager",
+        "spawn",
+        "timeout_after",
+        "sendall",
+        "recv",
+        "sock_close",
+        "wait_read",
+        "wait_write"
+    ]
 
 
 async def _maybe_await(coro):
@@ -300,6 +338,17 @@ class _AsyncLib(threading.local):
         '''
         raise NotImplementedError
 
+    # low level
+    def wait_read(self, sock: socket.socket):
+        '''
+        Waits until a socket is ready to read from.
+        '''
+
+    def wait_write(self, sock: socket.socket):
+        '''
+        Waits until a socket is ready to write to.
+        '''
+
     def __getattribute__(self, item):
         if super().__getattribute__("_init") is False:
             raise RuntimeError("multio.init() wasn't called")
@@ -336,6 +385,9 @@ def _curio_init(lib: _AsyncLib):
     lib.Cancelled = curio.CancelledError
     lib.TaskTimeout = curio.TaskTimeout
 
+    lib.wait_read = _low_level.wait_read_curio
+    lib.wait_write = _low_level.wait_write_curio
+
 
 def _trio_init(lib: _AsyncLib):
     import trio
@@ -360,6 +412,9 @@ def _trio_init(lib: _AsyncLib):
     lib.Cancelled = trio.Cancelled
     lib.Event = trio.Event
     lib.TaskTimeout = trio.TooSlowError
+
+    lib.read_wait = _low_level.wait_read_trio
+    lib.write_wait = _low_level.wait_write_trio
 
 
 manager.register("curio", _curio_init)

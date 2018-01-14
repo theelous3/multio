@@ -1,32 +1,26 @@
 '''
 Low-level unifying functions.
 '''
+import socket
 
 
-async def wait_read_curio(fd):
+async def wait_read_curio(sock: socket.socket):
     from curio.traps import _read_wait
-    from curio.io import _Fd
-
-    # eff dee eff dee eff dee eff dee
-    if not isinstance(fd, _Fd):
-        fd = _Fd(fd)
-
-    await _read_wait(_Fd(fd))
+    return await _read_wait(sock.fileno())
 
 
-async def wait_write_curio(fd):
+async def wait_write_curio(sock: socket.socket):
     from curio.traps import _write_wait
-    from curio.io import _Fd
-
-    if not isinstance(fd, _Fd):
-        fd = _Fd(fd)
-
-    await _write_wait(_Fd(fd))
+    return await _write_wait(sock.fileno())
 
 
-async def wait_read_trio(fd):
-    raise NotImplementedError
+async def wait_read_trio(sock: socket.socket):
+    # only works with sockets
+    from trio.hazmat import wait_socket_readable
+    return await wait_socket_readable(sock)
 
 
-async def wait_write_trio(fd):
-    raise NotImplementedError
+async def wait_write_trio(sock: socket.socket):
+    # also only works with sockets
+    from trio.hazmat import wait_socket_writable
+    return await wait_socket_writable(sock)
