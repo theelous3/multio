@@ -6,7 +6,6 @@ import threading
 import typing
 from typing import Callable
 
-from multio._event_loop_wrappers import curio_cancel, trio_cancel
 from . import _low_level, _event_loop_wrappers
 
 # used for static introspection e.g. pycharm
@@ -405,7 +404,7 @@ def _curio_init(lib: _AsyncLib):
     lib.sock_close = curio_close
     lib.spawn = curio_spawn
     lib.finalize_agen = curio.meta.finalize
-    lib.cancel_task_group = curio_cancel
+    lib.cancel_task_group = _event_loop_wrappers.curio_cancel
 
     lib.Lock = curio.Lock
     lib.Semaphore = curio.BoundedSemaphore
@@ -434,7 +433,7 @@ def _trio_init(lib: _AsyncLib):
     lib.recv = trio_receive_some
     lib.sock_close = trio_close
     lib.spawn = trio_spawn
-    lib.cancel_task_group = trio_cancel
+    lib.cancel_task_group = _event_loop_wrappers.trio_cancel
 
     lib.Lock = trio.Lock
     lib.Semaphore = trio.CapacityLimiter
