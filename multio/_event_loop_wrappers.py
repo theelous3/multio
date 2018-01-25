@@ -55,10 +55,19 @@ async def curio_close(sock):
     return await sock.close()
 
 
-# weird spawn semantics
+# custom spawn semantics
 async def trio_spawn(nursery, coro, *args):
     return nursery.start_soon(coro, *args)
 
 
 async def curio_spawn(taskgroup, coro, *args):
     return await taskgroup.spawn(coro, *args)
+
+
+# cancellation of task groups
+async def trio_cancel(nursery):
+    return nursery.cancel_scope.cancel()
+
+
+async def curio_cancel(tg):
+    await tg.cancel_remaining()

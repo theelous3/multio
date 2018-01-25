@@ -6,8 +6,8 @@ import threading
 import typing
 from typing import Callable
 
+from multio._event_loop_wrappers import curio_cancel, trio_cancel
 from . import _low_level, _event_loop_wrappers
-
 
 # used for static introspection e.g. pycharm
 # in reality, we can't import anything due to module getattr
@@ -27,7 +27,7 @@ if typing.TYPE_CHECKING:
         "asynclib",
         "init",
         "register",
-        
+
         # asynclib delegates
         "aopen",
         "open_connection",
@@ -39,7 +39,8 @@ if typing.TYPE_CHECKING:
         "recv",
         "sock_close",
         "wait_read",
-        "wait_write"
+        "wait_write",
+        "cancel_task_group"
     ]
 
 
@@ -259,8 +260,26 @@ class _AsyncLibManager:
         return self._handlers[library](lib)
 
 
-def _not_impl_generic(*args, **kwargs):
-    raise NotImplementedError
+class _not_impl_generic:
+    def __init__(self):
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __call__(self):
+        _raise_not_implemented(self.name)
+
+
+def _raise_not_implemented(name: str = None):
+    # do stack inspection for names
+    if name is None:
+        frame = inspect.stack()[1]
+        name = frame.frame.f_code.co_name
+
+    raise NotImplementedError("The library in use ({}) does not have an implementation for "
+                              "'asynclib.{}'"
+                              .format(asynclib.lib_name, name))
 
 
 class _AsyncLib(threading.local):
@@ -270,12 +289,13 @@ class _AsyncLib(threading.local):
     #: The lib name currently in usage.
     lib_name = ""
 
-    Lock = _not_impl_generic
-    Semaphore = _not_impl_generic
-    Queue = _not_impl_generic
-    Cancelled = _not_impl_generic
-    Event = _not_impl_generic
-    TaskTimeout = _not_impl_generic
+    # lib-specific constructs
+    Lock = _not_impl_generic()
+    Semaphore = _not_impl_generic()
+    Queue = _not_impl_generic()
+    Cancelled = _not_impl_generic()
+    Event = _not_impl_generic()
+    TaskTimeout = _not_impl_generic()
 
     def finalize_agen(self, agen):
         '''
@@ -284,70 +304,78 @@ class _AsyncLib(threading.local):
         '''
         return _AgenFinalizer(agen)
 
+    async def cancel_task_group(self, group):
+        '''
+        Cancels a task group.
+        '''
+        _raise_not_implemented()
+
     async def aopen(self, *args, **kwargs):
         '''
         Opens an async file.
         '''
-        raise NotImplementedError
+        _raise_not_implemented()
 
-    async def open_connection(self, host: str, port: int, *args, **kwargs) -> SocketWrapper:
+    async def open_connection(self, host: str, port: int, *args, **kwargs):
         '''
         Opens a connection. Returns a SocketWrapper.
         '''
-        raise NotImplementedError
+        _raise_not_implemented()
 
     async def sleep(self, amount: float):
         '''
         Sleeps for a certain time.
         '''
-        raise NotImplementedError
+        _raise_not_implemented()
 
     def task_manager(self, *args, **kwargs):
         '''
         Gets a task manager instance.
         '''
-        raise NotImplementedError
+        _raise_not_implemented()
 
     async def spawn(self, taskgroup_or_nursery, coro, *args):
         '''
         Spawns a task in a taskgroup or nursery.
         '''
-        raise NotImplementedError
+        _raise_not_implemented()
 
     def timeout_after(self, *args, **kwargs):
         '''
         Timeouts an operation after a certain period.
         '''
-        raise NotImplementedError
+        _raise_not_implemented()
 
     async def sendall(self, sock, *args, **kwargs):
         '''
         Sends all data through a socket.
         '''
-        raise NotImplementedError
+        _raise_not_implemented()
 
     async def recv(self, sock, *args, **kwargs) -> bytes:
         '''
         Receives data from a socket.
         '''
-        raise NotImplementedError
+        _raise_not_implemented()
 
     async def sock_close(self, sock):
         '''
         Closes a socket.
         '''
-        raise NotImplementedError
+        _raise_not_implemented()
 
     # low level
     def wait_read(self, sock: socket.socket):
         '''
         Waits until a socket is ready to read from.
         '''
+        _raise_not_implemented()
 
     def wait_write(self, sock: socket.socket):
         '''
         Waits until a socket is ready to write to.
         '''
+        _raise_not_implemented()
 
     def __getattribute__(self, item):
         if super().__getattribute__("_init") is False:
@@ -377,6 +405,7 @@ def _curio_init(lib: _AsyncLib):
     lib.sock_close = curio_close
     lib.spawn = curio_spawn
     lib.finalize_agen = curio.meta.finalize
+    lib.cancel_task_group = curio_cancel
 
     lib.Lock = curio.Lock
     lib.Semaphore = curio.BoundedSemaphore
@@ -405,6 +434,7 @@ def _trio_init(lib: _AsyncLib):
     lib.recv = trio_receive_some
     lib.sock_close = trio_close
     lib.spawn = trio_spawn
+    lib.cancel_task_group = trio_cancel
 
     lib.Lock = trio.Lock
     lib.Semaphore = trio.CapacityLimiter
