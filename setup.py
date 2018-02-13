@@ -9,7 +9,7 @@ if ver < (3, 5, 2):
 
 setup(
     name='multio',
-    description='mulio - an unified async library for curio and trio',
+    description='multio - an unified async library for curio and trio',
     license='MIT',
     version='0.2.0',
     author='theelous3, SunDwarf, and Akuli',
@@ -19,7 +19,8 @@ setup(
         'multio'
     ],
     classifiers=[
-        'Programming Language :: Python :: 3'
+        'Programming Language :: Python :: 3',
+        'Framework :: Trio',
     ],
     extras_require={
         'curio': [
