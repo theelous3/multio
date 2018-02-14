@@ -476,6 +476,8 @@ def init(library: typing.Union[str, types.ModuleType]) -> None:
     '''
     if isinstance(library, types.ModuleType):
         library = library.__name__
+    if library not in manager._handlers:
+        raise ValueError("Possible values are <%s> not <%s>" % (list(manager._handlers.keys()), library))
     manager.init(library, asynclib)
     asynclib.lib_name = library
     asynclib._init = True
