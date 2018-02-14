@@ -76,6 +76,7 @@ disable=
     redefined-builtin,
     pointless-string-statement,
     too-many-branches,
+    undefined-all-variable,
     undefined-loop-variable,
     bare-except,
     protected-access,
