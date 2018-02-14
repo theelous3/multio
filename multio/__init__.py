@@ -3,6 +3,7 @@ import inspect
 import socket
 import sys
 import threading
+import types
 import typing
 from typing import Callable
 
@@ -457,7 +458,7 @@ def register(lib_name: str, cbl: Callable[[_AsyncLib], None]):
     return manager.register(lib_name, cbl)
 
 
-def init(lib_name: str):
+def init(library: typing.Union[str, types.ModuleType]) -> None:
     '''
     Must be called at some point after import and before your event loop
     is run.
@@ -465,11 +466,20 @@ def init(lib_name: str):
     Populates the asynclib instance of _AsyncLib with methods relevant to the
     async library you are using.
 
+    The supported libraries at the moment are:
+    - curio
+    - trio
+
     Args:
-        lib_name (str): Either 'curio' or 'trio'.
+        library (str or module): Either the module name as a string or the
+                                 imported module itself. E.g. ``multio.init(curio)``.
     '''
-    manager.init(lib_name, asynclib)
-    asynclib.lib_name = lib_name
+    if isinstance(library, types.ModuleType):
+        library = library.__name__
+    if library not in manager._handlers:
+        raise ValueError("Possible values are <%s> not <%s>" % (list(manager._handlers.keys()), library))
+    manager.init(library, asynclib)
+    asynclib.lib_name = library
     asynclib._init = True
 
 
