@@ -296,6 +296,7 @@ class _AsyncLib(threading.local):
     Cancelled = _not_impl_generic()
     Event = _not_impl_generic()
     TaskTimeout = _not_impl_generic()
+    TaskGroupError = _not_impl_generic()
 
     def finalize_agen(self, agen):
         '''
@@ -364,6 +365,17 @@ class _AsyncLib(threading.local):
         '''
         _raise_not_implemented()
 
+    def unwrap_taskgrouperror(self, error) -> typing.List[Exception]:
+        '''
+        Unwraps a TaskGroupError or MultiError into its constituent exceptions.
+        '''
+        if type(error).__name__ == "MultiError":
+            return error.exceptions
+        elif type(error).__name__ == "TaskGroupError":
+            return [task.next_exc for task in error.failed]
+        else:
+            return [error]
+
     # low level
     def wait_read(self, sock: socket.socket):
         '''
@@ -413,6 +425,7 @@ def _curio_init(lib: _AsyncLib):
     lib.Event = curio.Event
     lib.Cancelled = curio.CancelledError
     lib.TaskTimeout = curio.TaskTimeout
+    lib.TaskGroupError = curio.TaskGroupError
 
     lib.wait_read = _low_level.wait_read_curio
     lib.wait_write = _low_level.wait_write_curio
@@ -442,6 +455,7 @@ def _trio_init(lib: _AsyncLib):
     lib.Cancelled = trio.Cancelled
     lib.Event = trio.Event
     lib.TaskTimeout = trio.TooSlowError
+    lib.TaskGroupError = trio.MultiError
 
     lib.read_wait = _low_level.wait_read_trio
     lib.write_wait = _low_level.wait_write_trio
