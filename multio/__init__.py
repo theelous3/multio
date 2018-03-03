@@ -369,12 +369,13 @@ class _AsyncLib(threading.local):
         '''
         Unwraps a TaskGroupError or MultiError into its constituent exceptions.
         '''
-        if type(error).__name__ == "MultiError":
-            return error.exceptions
-        elif type(error).__name__ == "TaskGroupError":
-            return [task.next_exc for task in error.failed]
-        else:
-            return [error]
+        _raise_not_implemented()
+
+    def unwrap_result(self, task) -> typing.Any:
+        '''
+        Unwraps a task's result.
+        '''
+        _raise_not_implemented()
 
     # low level
     def wait_read(self, sock: socket.socket):
@@ -418,6 +419,8 @@ def _curio_init(lib: _AsyncLib):
     lib.spawn = curio_spawn
     lib.finalize_agen = curio.meta.finalize
     lib.cancel_task_group = _event_loop_wrappers.curio_cancel
+    lib.unwrap_taskgrouperror = lambda error: [task.next_exc for task in error.failed]
+    lib.unwrap_result = lambda task: task.result
 
     lib.Lock = curio.Lock
     lib.Semaphore = curio.BoundedSemaphore
@@ -448,6 +451,8 @@ def _trio_init(lib: _AsyncLib):
     lib.sock_close = trio_close
     lib.spawn = trio_spawn
     lib.cancel_task_group = _event_loop_wrappers.trio_cancel
+    lib.unwrap_taskgrouperror = lambda error: error.exceptions
+    lib.unwrap_result = lambda task: task.result.unwrap()
 
     lib.Lock = trio.Lock
     lib.Semaphore = trio.CapacityLimiter
@@ -490,21 +495,14 @@ def init(library: typing.Union[str, types.ModuleType]) -> None:
     '''
     if isinstance(library, types.ModuleType):
         library = library.__name__
+
     if library not in manager._handlers:
-        raise ValueError("Possible values are <%s> not <%s>" % (list(manager._handlers.keys()), library))
+        raise ValueError("Possible values are <{}>, not <{}>".format(manager._handlers.keys(),
+                                                                     library))
+
     manager.init(library, asynclib)
     asynclib.lib_name = library
     asynclib._init = True
-
-
-def unwrap_result(task):
-    '''
-    Unwraps a result from a task.
-    '''
-    if asynclib.lib_name == "curio":
-        return task.result
-    elif asynclib.lib_name == "trio":
-        return task.result.unwrap()
 
 
 def run(*args, **kwargs):
