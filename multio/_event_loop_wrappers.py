@@ -28,6 +28,8 @@ async def trio_open_connection(host, port, *, ssl=False, **kwargs):
     else:
         sock = await trio.open_ssl_over_tcp_stream(host, port)
         await sock.do_handshake()
+
+    sock.close = sock.aclose
     return sock
 
 
