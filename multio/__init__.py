@@ -392,7 +392,14 @@ class _AsyncLib(threading.local):
 
     def __getattribute__(self, item):
         if super().__getattribute__("_init") is False:
-            raise RuntimeError("multio.init() wasn't called")
+            # this lies sometimes but whatever
+            if threading.current_thread() == threading.main_thread():
+                raise RuntimeError("multio.init() wasn't called")
+            else:
+                raise RuntimeError("multio.init() wasn't called in this thread - either you need "
+                                   "to call it again if you're running an event loop in this "
+                                   "thread, or you're trying to call something multio in a "
+                                   "non-async thread.")
 
         return super().__getattribute__(item)
 
