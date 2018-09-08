@@ -414,10 +414,7 @@ def _curio_init(lib: _AsyncLib):
     from ._event_loop_wrappers import (curio_sendall,
                                        curio_recv,
                                        curio_close,
-                                       curio_spawn,
-                                       curio_cancel)
-
-    from . import _curio_patch
+                                       curio_spawn)
     lib.aopen = curio.aopen
     lib.open_connection = curio.open_connection
     lib.sleep = curio.sleep
@@ -428,7 +425,7 @@ def _curio_init(lib: _AsyncLib):
     lib.sock_close = curio_close
     lib.spawn = curio_spawn
     lib.finalize_agen = curio.meta.finalize
-    lib.cancel_task_group = curio_cancel
+    lib.cancel_task_group = _event_loop_wrappers.curio_cancel
     lib.unwrap_taskgrouperror = lambda error: [task.next_exc for task in error.failed]
     lib.unwrap_result = lambda task: task.result
 
@@ -442,9 +439,6 @@ def _curio_init(lib: _AsyncLib):
 
     lib.wait_read = _low_level.wait_read_curio
     lib.wait_write = _low_level.wait_write_curio
-
-    if _curio_patch._should_patch:
-        _curio_patch._hotpatch_curio()
 
 
 def _trio_init(lib: _AsyncLib):
