@@ -475,8 +475,8 @@ def _trio_init(lib: _AsyncLib):
     lib.TaskTimeout = trio.TooSlowError
     lib.TaskGroupError = trio.MultiError
 
-    lib.read_wait = _low_level.wait_read_trio
-    lib.write_wait = _low_level.wait_write_trio
+    lib.wait_read = _low_level.wait_read_trio
+    lib.wait_write = _low_level.wait_write_trio
 
 
 manager.register("curio", _curio_init)
