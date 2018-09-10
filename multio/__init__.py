@@ -462,7 +462,7 @@ def _trio_init(lib: _AsyncLib):
     lib.unwrap_result = lambda task: task.result.unwrap()
 
     lib.Lock = trio.Lock
-    lib.Semaphore = trio.CapacityLimiter
+    lib.Semaphore = trio.Semaphore
     lib.Queue = trio.Queue
     lib.Cancelled = trio.Cancelled
     lib.Event = trio.Event
