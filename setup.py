@@ -11,7 +11,7 @@ setup(
     name='multio',
     description='multio - an unified async library for curio and trio',
     license='MIT',
-    version='0.2.3',
+    version='0.2.4',
     author='theelous3, SunDwarf, and Akuli',
     url='https://github.com/theelous3/multio',
     python_requires=">=3.5.2",
