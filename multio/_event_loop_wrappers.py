@@ -18,7 +18,9 @@ async def trio_open_connection(host, port, *, ssl=False, **kwargs):
     Args:
         host (str): Network location, either by domain or IP.
         port (int): The requested port.
-        ssl (bool): Whether or not SSL is required.
+        ssl (bool or SSLContext): If False or None, SSL is not required. If
+            True, the context returned by trio.ssl.create_default_context will
+            be used. Otherwise, this may be an SSLContext object.
         kwargs: A catch all to soak up curio's additional kwargs and
             ignore them.
     '''
@@ -26,7 +28,11 @@ async def trio_open_connection(host, port, *, ssl=False, **kwargs):
     if not ssl:
         sock = await trio.open_tcp_stream(host, port)
     else:
-        sock = await trio.open_ssl_over_tcp_stream(host, port)
+        if isinstance(ssl, bool):
+            ssl_context = None
+        else:
+            ssl_context = ssl
+        sock = await trio.open_ssl_over_tcp_stream(host, port, ssl_context=ssl_context)
         await sock.do_handshake()
 
     sock.close = sock.aclose
