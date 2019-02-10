@@ -184,7 +184,7 @@ class Event:
         return self.event.clear()
 
 
-class Promise(object):
+class Promise:
     '''
     Represents a Promise, i.e. an Event with a return value.
     '''
@@ -229,7 +229,7 @@ def finalize_agen(gen):
     return asynclib.finalize_agen(gen)
 
 
-class _AgenFinalizer(object):
+class _AgenFinalizer:
     def __init__(self, agen):
         self._ = agen
 
