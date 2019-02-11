@@ -184,7 +184,7 @@ class Event:
         return self.event.clear()
 
 
-class Promise(object):
+class Promise:
     '''
     Represents a Promise, i.e. an Event with a return value.
     '''
@@ -229,7 +229,7 @@ def finalize_agen(gen):
     return asynclib.finalize_agen(gen)
 
 
-class _AgenFinalizer(object):
+class _AgenFinalizer:
     def __init__(self, agen):
         self._ = agen
 
@@ -463,7 +463,7 @@ def _trio_init(lib: _AsyncLib):
 
     lib.Lock = trio.Lock
     lib.Semaphore = trio.Semaphore
-    lib.Queue = trio.Queue
+    lib.Queue = _event_loop_wrappers.TrioQueue
     lib.Cancelled = trio.Cancelled
     lib.Event = trio.Event
     lib.TaskTimeout = trio.TooSlowError
