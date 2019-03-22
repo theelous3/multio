@@ -3,6 +3,12 @@
 multio is a convenience wrapper for curio and trio, that unifies their
 apis such that they can be used willy-nilly.
 
+# Hey! Use anyio instead!
+[anyio](https://github.com/agronholm/anyio)
+
+multio was written as an ad hoc layer between curio and trio, for [asks](https://github.com/theelous3/asks).
+asks is now driven by anyio which is a much more together version of multio, and even supports asyncio. Go support anyio!
+
 ### example
 
 ```python
