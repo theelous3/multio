@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from sys import version_info
 
 ver = version_info[:3]
-if ver < (3, 5, 2):
-    raise SystemExit('Sorry! multio requires python 3.5.2 or later.')
+min_py_ver = (3, 5, 2)
+min_py_ver_str = '.'.join([str(x) for x in min_py_ver])
+if ver < min_py_ver:
+    raise SystemExit('Sorry! multio requires python {} or later.'.format(min_py_ver_str))
 
 setup(
     name='multio',
@@ -14,10 +16,8 @@ setup(
     version='0.2.5',
     author='theelous3, SunDwarf, and Akuli',
     url='https://github.com/theelous3/multio',
-    python_requires=">=3.5.2",
-    packages=[
-        'multio'
-    ],
+    python_requires=">={}".format(min_py_ver_str),
+    packages=find_packages(),
     classifiers=[
         'Programming Language :: Python :: 3',
         'Framework :: Trio',
